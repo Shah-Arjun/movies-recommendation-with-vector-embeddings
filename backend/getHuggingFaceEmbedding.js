@@ -1,5 +1,4 @@
 const axios = require('axios');
-const ConnectDB = require('./database/db')
 
 const dotenv = require('dotenv');
 const { connect } = require('mongoose');
@@ -7,7 +6,7 @@ dotenv.config()
 
 
 
-// Funnction to generate embeddings (384 length)  -> takes input and returns vector embeddings
+// Funnction to generate embeddings from HuggingFaceEmbeddings (384 length vector)  -> takes input and returns vector embeddings
 const getEmbeddings = async(data) => {
     const apiKey = process.env.HUGGING_FACE_EMBEDDINGS
 
@@ -42,3 +41,5 @@ module.exports = { getEmbeddings };  //exporting function so can be used in anot
 
 
 // getEmbeddings("spiderman movies.")  //test 
+
+
