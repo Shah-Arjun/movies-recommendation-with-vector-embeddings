@@ -1,4 +1,5 @@
 const { ObjectId } = require('mongodb');
+const { getAggregationPipeline } = require('../utils/aggregationPipeline');
 const { getCollection } = require('../database/db');
 
 
@@ -82,3 +83,43 @@ exports.getMovieById = async (req, res) => {
         });
     }
 }
+
+
+
+
+
+
+// GET recommended movies against a movie
+exports.getSimilarRecommendMovie = async (req, res) => {
+    try {
+        const movieId = req.params.id;
+        const collection = await getCollection('movie')
+
+        // console.log("movieid---> ", movieId)    //debug
+        const { plot_embedding } = await collection.findOne(          // get only plot_embeddings of a current movie by _id
+            { _id: new ObjectId(movieId) },
+            { projection: { plot_embedding: 1 } }          
+        );
+
+        // console.log('movie plot emb length->', plot_embedding.length); //debug
+
+        const aggregationPipeline = getAggregationPipeline(plot_embedding, movieId);   //get top 10 similar recommendaions
+
+        const movies = await collection            // executes the vector search using MongoDB Aggregation and converts the result into a JavaScript array. This returns the top 10 similar movies with similarity score.
+            .aggregate(aggregationPipeline)
+            .toArray();
+
+        res.status(200).json({                        // sends top 20 similar movie json data in response to frontend
+            message: "Top 10 similar movie are: ",
+            data: movies
+        });
+    } catch (error) {
+        console.log(error)
+        res.status(500).json({
+            message: 'Internal Server Error',
+            error: error.message
+        });
+    }
+}
+
+
