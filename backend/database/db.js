@@ -1,58 +1,83 @@
-const mongoose = require('mongoose')
+// database/db.js
+const { MongoClient } = require("mongodb");
+const dotenv = require('dotenv');
 
-
-let conn  //store connection instance
-let db     // store db instance
-
-
-const ConnectDB = async() => {
-    try {
-        if(!conn){
-            conn = await mongoose.connect(process.env.MONGO_URI)
-            db = conn.connection  //set db insatnce
-            console.log("DB connected successfully!")
-         }
-        return db
-    } catch (err) {
-        console.log("Failed to connect DB", err.message)
-        process.exit(1)
-    }    
-}
+dotenv.config();
 
 
 
+const uri = process.env.MONGO_URI;
+const dbName = "movie_recommendation_db"; 
 
-// get db instance function
-const getDB = async()=> {
-    if(!db) {
-        await ConnectDB()
+
+
+let client = null;
+let db = null;
+
+
+
+// function to connect to db
+async function connectToMongo() {
+    if (client) return client;   // if already connected
+
+    if (!uri) {
+        throw new Error("MONGO_URI is not defined in env.");
     }
-    return db
+
+
+    client = new MongoClient(uri, {
+        maxPoolSize: 50,                 // maximum 50 concurrent connections in the pool
+        minPoolSize: 5,
+        maxIdleTimeMS: 30000,
+        serverSelectionTimeoutMS: 5000,
+        connectTimeoutMS: 10000,
+    });
+
+    await client.connect();        // connect to db
+    db = client.db(dbName);        // once connected, we get a reference to the specific database (movie_recommendation_db).
+
+    console.log("MongoDB connected successfully to database:", dbName);
+    
+    return client;     // return reference to db
 }
 
 
 
-//function to get collection
-const getCollection = async(collectionName) => {
-    const database = await getDB()
-    return database.collection(collectionName)
+// returns the existing database instance or connect if not connected and return
+async function getDB() {
+    if (!db) {
+        await connectToMongo();
+    }
+    return db;
 }
 
 
 
-//close connection
-const closeConn = async()=> {
-    if(conn){
-        await mongoose.disconnect()
-        conn = null
-        db = null
-        console.log("DB connection closed")
+// get collection of db function
+async function getCollection(collectionName) {
+    if (!collectionName) throw new Error("Collection name is required");
+    const database = await getDB();
+    return database.collection(collectionName);
+}
+
+
+
+// close connection to db function
+async function closeConn() {
+    if (client) {
+        await client.close();
+        client = null;
+        db = null;
+        console.log("🔌 MongoDB connection closed");
     }
 }
 
 
 
-
-module.exports = { ConnectDB, getDB, getCollection, closeConn };
-
-
+// exports all the functions
+module.exports = {
+    connectToMongo,  
+    getDB,
+    getCollection,
+    closeConn
+};
