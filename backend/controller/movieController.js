@@ -1,3 +1,4 @@
+const { ObjectId } = require('mongodb');
 const { getCollection } = require('../database/db');
 
 
@@ -48,3 +49,36 @@ exports.getMovies = async(req, res) => {
 
 
 
+
+
+
+// GET  a movie by id
+exports.getMovieById = async (req, res) => {
+    try {
+        const movieId = req.params.id;                
+        const collection = await getCollection('movie');
+
+        //find current movie by id
+        const movie = await collection.findOne(
+            { _id: new ObjectId(movieId) },
+            { projection: { plot_embedding: 0 } }     // fetch movie excluding plot_embedding
+        );
+
+        if (!movie) {
+            return res.status(404).json({
+                message: 'Movie not found'
+            });
+        }
+
+        res.status(200).json({
+            message: "Movie found",
+            data: movie
+        });
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({
+            message: 'Internal Server Error',
+            error: error.message
+        });
+    }
+}

@@ -1,10 +1,11 @@
-const { getMovies } = require('../controller/movieController')
+const { getMovies, getMovieById } = require('../controller/movieController')
 const router = require('express').Router()
 
 
 
 
 router.get('/', getMovies)
+router.get('/:id', getMovieById)
 
 
 
