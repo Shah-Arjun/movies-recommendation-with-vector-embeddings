@@ -1,6 +1,7 @@
 const { ObjectId } = require('mongodb');
 const { getAggregationPipeline } = require('../utils/aggregationPipeline');
 const { getCollection } = require('../database/db');
+const { getEmbeddings } = require('../getHuggingFaceEmbedding');
 
 
 
@@ -106,8 +107,8 @@ exports.getSimilarRecommendMovie = async (req, res) => {
         const aggregationPipeline = getAggregationPipeline(plot_embedding, movieId);   //get top 10 similar recommendaions
 
         const movies = await collection            // executes the vector search using MongoDB Aggregation and converts the result into a JavaScript array. This returns the top 10 similar movies with similarity score.
-            .aggregate(aggregationPipeline)
-            .toArray();
+            .aggregate(aggregationPipeline)          // performs vetcor search
+            .toArray();                              // convarts rresult into array
 
         res.status(200).json({                        // sends top 20 similar movie json data in response to frontend
             message: "Top 10 similar movie are: ",
@@ -123,3 +124,45 @@ exports.getSimilarRecommendMovie = async (req, res) => {
 }
 
 
+
+
+// semantic search
+// get recommended movies based on search text/term (semantic search) using hugging face sentence-transformer
+exports.getRecommendMoviesBySearchTerm = async (req, res) => {
+    try {
+        // console.log("--------->", req.query) 
+        const { query } = req.query;           // destructure the query parameter from the url
+
+        if (!query || query.trim() === '') {
+            return res.status(400).json({
+                success: false,
+                message: "Search query is required"
+            });
+        }
+        // console.log('query->', query);
+
+        const plot_embedding = await getEmbeddings(query);      // converts the users search text into a 384-dimensional embedding using Hugging Face.
+
+        // console.log('movie------>', plot_embedding.length);
+
+        const collection = await getCollection('movie')
+        const aggregationPipeline = getAggregationPipeline(plot_embedding);      // calls aggregation pipeline function to build the vector search query based on embeddings
+        
+        const searchResult = await collection                   // runs the vector search on MongoDB and converts results to an array.
+            .aggregate(aggregationPipeline)               
+            .toArray();
+
+
+        res.status(200).json({
+            message: `Top ${searchResult.length} similar search reasults are: `,
+            count: searchResult.length,
+            data: searchResult
+        });
+    } catch (error) {
+        console.error("Error in getRecommendMoviesBySearchTerm:", error);        
+        res.status(500).json({
+            message: 'Internal Server Error',
+            error: error.message
+        });
+    }
+}
