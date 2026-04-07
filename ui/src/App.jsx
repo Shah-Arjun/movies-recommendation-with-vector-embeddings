@@ -1,13 +1,20 @@
-import { BrowserRouter, Route, Router, Routes } from "react-router-dom"
+import { BrowserRouter as Router, Routes, Route, Link} from 'react-router-dom';
+import './App.css'
+import MoviesList from './Pages/movieList/MovieList';
+import MovieDetail from './pages/MovieDetail';
+import Search from './components/Search';
 
 function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
-        <Route path="/" element={}/>
+        <Route path="/" element={<MoviesList />} />
+        <Route path="/movies/:id" element={<MovieDetail />} />
+        <Route path="/search" element={<Search />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   )
 }
+
 
 export default App
